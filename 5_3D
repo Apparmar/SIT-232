@@ -1,0 +1,138 @@
+
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace SimpleReactionMachine 
+{
+    class SimpleReactionController : IController
+    {
+        private enum State
+        {GameStart, CoinInserted, Wait, TimerStart, DisplayResult
+        }
+
+        private State state;
+        private IGui gui;
+        private IRandom rng;
+        private double timerSec;
+        private double finalTimer;
+        public SimpleReactionController()
+        {
+            this.state = State.GameStart;
+            this.timerSec = 0;
+        }
+
+        
+        public void GoStopPressed()
+        {
+            this.gui.SetDisplay(new string(' ', 30));
+            switch (this.state)
+            {
+                case State.GameStart:
+                    this.gui.SetDisplay("Insert coin");
+                    break;
+                case State.CoinInserted:
+                    this.gui.SetDisplay("Wait...");
+                    this.timerSec = (double)this.rng.GetRandom(0, 3000);
+                    this.state = State.Wait;
+                    break;
+                case State.Wait:
+                    this.gui.SetDisplay(this.timerSec.ToString());
+                    if (this.timerSec > 0)
+                    {
+                        this.gui.SetDisplay("Pressed PG while waiting");
+                        Init();
+                    }
+                    break;
+                case State.TimerStart:
+                    ShowFinalTimer("Well Done.");
+                    this.state = State.DisplayResult;
+                    break;
+                case State.DisplayResult:
+                    this.gui.SetDisplay("Start your game!");
+                    Init();
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        public void CoinInserted()
+        {
+            if (this.state == State.GameStart)
+            {
+                this.gui.SetDisplay("Press GO!");
+                this.state = State.CoinInserted;
+            }
+        }
+
+        public void Init()
+        {
+            this.gui.SetDisplay(new string(' ', 30));
+            this.state = State.GameStart;
+            this.timerSec = 0;
+            this.gui.SetDisplay("Insert coin");
+        }
+
+        public void Tick()
+        {
+            switch (this.state)
+            {
+                case State.Wait:
+                    //this.gui.SetDisplay(new string(' ', 30));
+                    this.gui.SetDisplay("Wait...");
+                    this.timerSec -= 1;
+                    if (this.timerSec <= 0)
+                    {   
+                        this.state = State.TimerStart;
+                        this.gui.SetDisplay(((Decimal)this.timerSec).ToString("F"));
+                        this.timerSec = 2000;
+                    }
+                    break;
+                case State.TimerStart:
+                    this.gui.SetDisplay(new string(' ', 30));
+                    this.timerSec -= 10;
+                    finalTimer = 2000 - this.timerSec;
+                    if (this.timerSec <= 0)
+                    {
+                        this.state = State.DisplayResult;
+                        ShowFinalTimer("");
+                    }
+                    else
+                    {
+                        this.gui.SetDisplay(((2000 - this.timerSec) / 1000).ToString("F"));
+                    }
+                    break;
+                case State.DisplayResult:
+                    this.timerSec -= 10;
+                    if (this.timerSec <= 0)
+                    {
+                        Init();
+                        //this.gui.SetDisplay(new string(' ', 30));
+                        //this.gui.SetDisplay("Start your game!");
+                    }
+                    else
+                    {
+
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+        
+        public void Connect(IGui gui, IRandom rng)
+        {
+            this.gui = gui;
+            this.rng = rng;
+        }
+
+        private void ShowFinalTimer(string message)
+        {
+            this.gui.SetDisplay(new string(' ', 30));
+            finalTimer = Math.Round(finalTimer / 1000,2);
+            this.gui.SetDisplay(finalTimer.ToString("F"));
+            this.timerSec = 3000;
+        }
+    }
+}
